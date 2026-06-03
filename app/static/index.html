@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EngCalc - Bolt Shear Margin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 620px;
+    }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .sub { font-size: 12px; color: #888; margin-bottom: 1.5rem; }
+    .field { margin-top: 12px; }
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    label { font-size: 12px; color: #aaa; display: block; }
+    select, input {
+      width: 100%;
+      padding: 8px 10px;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 14px;
+    }
+    button {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 10px;
+      background: #1d9e75;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button:hover { background: #0f7a5a; }
+    .help-btn {
+      width: 22px;
+      height: 22px;
+      margin: 0;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid #444;
+      background: #151515;
+      color: #bbb;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .tooltip-wrap { position: relative; flex: 0 0 auto; }
+    .tooltip {
+      position: absolute;
+      right: 0;
+      top: 28px;
+      z-index: 5;
+      display: none;
+      width: min(300px, 82vw);
+      padding: 10px 12px;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #ddd;
+      font-size: 12px;
+      line-height: 1.4;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
+    }
+    .tooltip.open { display: block; }
+    .head-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .head-option {
+      border: 1px solid #2a2a2a;
+      background: #111;
+      color: #d8d8d8;
+      border-radius: 6px;
+      padding: 10px 8px;
+      cursor: pointer;
+      min-height: 76px;
+    }
+    .head-option input { display: none; }
+    .head-icon { display: block; font-size: 22px; line-height: 1; margin-bottom: 8px; }
+    .head-title { display: block; font-size: 12px; font-weight: 600; }
+    .head-sub { display: block; color: #888; font-size: 10px; line-height: 1.25; margin-top: 4px; }
+    .head-option:has(input:checked) {
+      border-color: #1d9e75;
+      box-shadow: inset 0 0 0 1px #1d9e75;
+    }
+    .note {
+      color: #888;
+      font-size: 11px;
+      line-height: 1.45;
+      margin-top: 6px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #333;
+      color: #bbb;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+    .soon input {
+      border-color: #333;
+      color: #aaa;
+    }
+    .results {
+      margin-top: 1.5rem;
+      border-top: 1px solid #2a2a2a;
+      padding-top: 1rem;
+      display: none;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 6px 0;
+      border-bottom: 1px solid #1f1f1f;
+      font-size: 13px;
+    }
+    .row span:last-child { font-weight: 500; text-align: right; }
+    .PASS { color: #1d9e75; }
+    .MARGINAL { color: #f59e0b; }
+    .FAIL { color: #ef4444; }
+    .interpretation {
+      display: none;
+      margin-top: 1rem;
+      padding: 12px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #141414;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .interpretation.PASS { border-color: #1d9e75; color: #dcefe8; }
+    .interpretation.MARGINAL { border-color: #f59e0b; color: #f4ead7; }
+    .interpretation.FAIL { border-color: #ef4444; color: #f5dddd; }
+    .ref { font-size: 10px; color: #777; margin-top: 10px; }
+    .error { color: #ef4444; font-size: 13px; margin-top: 1rem; display: none; }
+    @media (max-width: 640px) {
+      body { align-items: flex-start; padding: 14px; }
+      .card { padding: 1.25rem; }
+      .head-grid { grid-template-columns: 1fr; }
+      .head-option { min-height: auto; }
+      .row { flex-direction: column; gap: 2px; }
+      .row span:last-child { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>EngCalc</h1>
+  <p class="sub">Bolt shear margin - NASA-TM-2012-217454 Section 3.1</p>
+
+  <div class="field">
+    <div class="label-row">
+      <label>Bolt head type</label>
+    </div>
+    <div class="head-grid" aria-label="Bolt head type">
+      <label class="head-option">
+        <input type="radio" name="head-type" value="hex" checked>
+        <span class="head-icon">⬢</span>
+        <span class="head-title">Hex head</span>
+        <span class="head-sub">Structural</span>
+      </label>
+      <label class="head-option">
+        <input type="radio" name="head-type" value="socket">
+        <span class="head-icon">◉</span>
+        <span class="head-title">Socket cap</span>
+        <span class="head-sub">Allen key</span>
+      </label>
+      <label class="head-option">
+        <input type="radio" name="head-type" value="phillips">
+        <span class="head-icon">✚</span>
+        <span class="head-title">Phillips</span>
+        <span class="head-sub">Light duty</span>
+      </label>
+      <label class="head-option">
+        <input type="radio" name="head-type" value="torx">
+        <span class="head-icon">✶</span>
+        <span class="head-title">Torx</span>
+        <span class="head-sub">High torque</span>
+      </label>
+      <label class="head-option">
+        <input type="radio" name="head-type" value="countersunk">
+        <span class="head-icon">▽</span>
+        <span class="head-title">Countersunk</span>
+        <span class="head-sub">Flush mount</span>
+      </label>
+    </div>
+    <p class="note">Head type affects installation torque but not shear strength. For shear calculations, only diameter and grade matter.</p>
+  </div>
+
+  <div class="field">
+    <div class="label-row">
+      <label for="grade">Bolt grade</label>
+      <span class="tooltip-wrap">
+        <button type="button" class="help-btn" data-tip="grade-tip">?</button>
+        <span class="tooltip" id="grade-tip">The material strength rating. Higher number = stronger bolt. ISO 8.8 is standard construction, 10.9 and 12.9 are high-strength.</span>
+      </span>
+    </div>
+    <select id="grade">
+      <option value="ISO_8.8">ISO 8.8</option>
+      <option value="ISO_10.9">ISO 10.9</option>
+      <option value="ISO_12.9">ISO 12.9</option>
+      <option value="NAS_3">NAS 3</option>
+      <option value="A2_70">A2-70 (Stainless)</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <div class="label-row">
+      <label for="diameter">Bolt diameter (mm)</label>
+      <span class="tooltip-wrap">
+        <button type="button" class="help-btn" data-tip="diameter-tip">?</button>
+        <span class="tooltip" id="diameter-tip">The shank diameter in mm, not the thread outer diameter. For M8 bolt, enter 8.</span>
+      </span>
+    </div>
+    <input type="number" id="diameter" value="8" min="1" max="100" step="0.5">
+  </div>
+
+  <div class="field">
+    <div class="label-row">
+      <label for="shear">Applied shear force (N)</label>
+      <span class="tooltip-wrap">
+        <button type="button" class="help-btn" data-tip="shear-tip">?</button>
+        <span class="tooltip" id="shear-tip">The force trying to slide the bolt sideways, perpendicular to its axis. NOT the tightening force.</span>
+      </span>
+    </div>
+    <input type="number" id="shear" value="10000" min="1">
+  </div>
+
+  <div class="field">
+    <div class="label-row">
+      <label for="planes">Shear planes</label>
+      <span class="tooltip-wrap">
+        <button type="button" class="help-btn" data-tip="planes-tip">?</button>
+        <span class="tooltip" id="planes-tip">Single shear = bolt cuts in one place, like a hinge pin. Double shear = bolt supported both sides, cuts in two places. Double shear is roughly twice as strong.</span>
+      </span>
+    </div>
+    <select id="planes">
+      <option value="1">Single shear</option>
+      <option value="2">Double shear</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <div class="label-row">
+      <label for="ff">Fitting factor</label>
+      <span class="tooltip-wrap">
+        <button type="button" class="help-btn" data-tip="ff-tip">?</button>
+        <span class="tooltip" id="ff-tip">A safety multiplier on the applied load. Use 1.0 for well-defined loads, 1.15 for typical aerospace joints, 1.5 for uncertain load paths.</span>
+      </span>
+    </div>
+    <input type="number" id="ff" value="1.0" min="1.0" max="2.0" step="0.05">
+  </div>
+
+  <div class="field">
+    <div class="label-row">
+      <label for="engagement">Thread engagement length (mm)<span class="badge">v1.1</span></label>
+    </div>
+    <input type="number" id="engagement" value="12" min="0" step="0.5">
+    <p class="note">Minimum recommended: 1.0 × bolt diameter for steel, 1.5 × diameter for aluminium. Used in future thread shear calculations.</p>
+  </div>
+
+  <div class="field soon">
+    <div class="label-row">
+      <label for="preload">Expected preload / clamping force (N)<span class="badge">v1.1</span></label>
+    </div>
+    <input type="number" id="preload" value="0" min="0" step="100">
+    <p class="note">Preload affects fatigue life and joint separation. Preload analysis coming in v1.1.</p>
+  </div>
+
+  <button type="button" onclick="calculate()">Calculate margin of safety</button>
+  <p class="error" id="error"></p>
+
+  <div class="results" id="results">
+    <div class="row"><span>Bolt area</span><span id="r-area">-</span></div>
+    <div class="row"><span>Shear allowable</span><span id="r-allow">-</span></div>
+    <div class="row"><span>Applied / plane</span><span id="r-applied">-</span></div>
+    <div class="row"><span>Margin of safety</span><span id="r-ms">-</span></div>
+    <div class="row"><span>Status</span><span id="r-status">-</span></div>
+    <div class="interpretation" id="interpretation"></div>
+    <p class="ref" id="r-ref"></p>
+  </div>
+</div>
+
+<script>
+document.addEventListener("click", function(event) {
+  const clickedHelp = event.target.matches(".help-btn");
+  document.querySelectorAll(".tooltip").forEach(function(tip) {
+    if (!clickedHelp || tip.id !== event.target.dataset.tip) {
+      tip.classList.remove("open");
+    }
+  });
+
+  if (clickedHelp) {
+    event.stopPropagation();
+    document.getElementById(event.target.dataset.tip).classList.toggle("open");
+  }
+});
+
+function setInterpretation(data) {
+  const box = document.getElementById("interpretation");
+  const reserve = Math.round(data.margin_of_safety * 100);
+  box.className = "interpretation " + data.status;
+
+  if (data.status === "PASS") {
+    box.textContent = "This bolt is adequate for the applied load with a " + reserve + "% strength reserve. Standard aerospace practice requires MS > 0.0; MS > 0.2 is preferred.";
+  } else if (data.status === "MARGINAL") {
+    box.textContent = "This bolt passes but has less than 20% strength reserve. Consider using the next size up or a higher grade. Review load assumptions carefully.";
+  } else {
+    box.textContent = "This bolt will fail under the applied load. Increase diameter, use higher grade, add shear planes, or reduce the applied load.";
+  }
+
+  box.style.display = "block";
+}
+
+async function calculate() {
+  const err = document.getElementById("error");
+  const res = document.getElementById("results");
+  err.style.display = "none";
+  res.style.display = "none";
+
+  const body = {
+    grade: document.getElementById("grade").value,
+    diameter_mm: parseFloat(document.getElementById("diameter").value),
+    applied_shear_N: parseFloat(document.getElementById("shear").value),
+    shear_planes: parseInt(document.getElementById("planes").value, 10),
+    fitting_factor: parseFloat(document.getElementById("ff").value)
+  };
+
+  try {
+    const response = await fetch("/calculate/shear", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      err.textContent = errorData.detail;
+      err.style.display = "block";
+      return;
+    }
+
+    const data = await response.json();
+    document.getElementById("r-area").textContent = data.bolt_area_mm2 + " mm2";
+    document.getElementById("r-allow").textContent = (data.shear_allowable_N / 1000).toFixed(2) + " kN";
+    document.getElementById("r-applied").textContent = (data.applied_per_plane_N / 1000).toFixed(2) + " kN";
+    document.getElementById("r-ms").textContent = (data.margin_of_safety >= 0 ? "+" : "") + data.margin_of_safety;
+
+    const status = document.getElementById("r-status");
+    status.textContent = data.status;
+    status.className = data.status;
+
+    setInterpretation(data);
+    document.getElementById("r-ref").textContent = data.standard_ref;
+    res.style.display = "block";
+  } catch (error) {
+    err.textContent = "Could not reach API. Is the server running?";
+    err.style.display = "block";
+  }
+}
+</script>
+</body>
+</html>
