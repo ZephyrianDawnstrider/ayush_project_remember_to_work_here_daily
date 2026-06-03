@@ -22,9 +22,10 @@
       border-radius: 8px;
       padding: 2rem;
       width: 100%;
-      max-width: 620px;
+      max-width: 760px;
     }
     h1 { font-size: 20px; margin-bottom: 4px; }
+    h2 { font-size: 13px; color: #d8d8d8; margin: 18px 0 8px; }
     .sub { font-size: 12px; color: #888; margin-bottom: 1.5rem; }
     .field { margin-top: 12px; }
     .label-row {
@@ -43,6 +44,11 @@
       border-radius: 6px;
       color: #e0e0e0;
       font-size: 14px;
+    }
+    select:disabled, input:disabled {
+      color: #777;
+      border-color: #333;
+      background: #151515;
     }
     button {
       margin-top: 1.5rem;
@@ -76,7 +82,7 @@
       top: 28px;
       z-index: 5;
       display: none;
-      width: min(300px, 82vw);
+      width: min(320px, 82vw);
       padding: 10px 12px;
       background: #111;
       border: 1px solid #333;
@@ -87,13 +93,15 @@
       box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
     }
     .tooltip.open { display: block; }
-    .head-grid {
+    .head-grid, .joint-grid, .plane-toggle {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
       gap: 8px;
       margin-top: 6px;
     }
-    .head-option {
+    .head-grid { grid-template-columns: repeat(5, 1fr); }
+    .joint-grid { grid-template-columns: repeat(2, 1fr); }
+    .plane-toggle { grid-template-columns: repeat(2, 1fr); }
+    .option-card, .toggle-card {
       border: 1px solid #2a2a2a;
       background: #111;
       color: #d8d8d8;
@@ -102,19 +110,35 @@
       cursor: pointer;
       min-height: 76px;
     }
-    .head-option input { display: none; }
-    .head-icon { display: block; font-size: 22px; line-height: 1; margin-bottom: 8px; }
-    .head-title { display: block; font-size: 12px; font-weight: 600; }
-    .head-sub { display: block; color: #888; font-size: 10px; line-height: 1.25; margin-top: 4px; }
-    .head-option:has(input:checked) {
+    .option-card input, .toggle-card input { display: none; }
+    .option-card.active, .toggle-card.active {
       border-color: #1d9e75;
       box-shadow: inset 0 0 0 1px #1d9e75;
     }
+    .icon-wrap {
+      display: grid;
+      place-items: center;
+      height: 30px;
+      margin-bottom: 6px;
+    }
+    .option-title { display: block; font-size: 12px; font-weight: 600; }
+    .option-sub { display: block; color: #888; font-size: 10px; line-height: 1.25; margin-top: 4px; }
     .note {
       color: #888;
       font-size: 11px;
       line-height: 1.45;
       margin-top: 6px;
+    }
+    .warning-note {
+      display: none;
+      margin-top: 8px;
+      padding: 10px;
+      border: 1px solid #6f4f12;
+      background: #1d170d;
+      color: #f2d38b;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.45;
     }
     .badge {
       display: inline-flex;
@@ -127,10 +151,43 @@
       font-weight: 600;
       margin-left: 6px;
     }
-    .soon input {
-      border-color: #333;
-      color: #aaa;
+    .viz {
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      background: #121212;
+      overflow: hidden;
     }
+    svg { display: block; width: 100%; max-width: 100%; height: auto; }
+    .compare-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 10px;
+      color: #aaa;
+      text-align: center;
+    }
+    .compare-item {
+      border: 1px solid #282828;
+      border-radius: 6px;
+      padding: 6px 4px;
+      background: #101010;
+    }
+    .compare-item.active {
+      border-color: #1d9e75;
+      color: #e0e0e0;
+    }
+    .ff-labels {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 10px;
+      color: #888;
+    }
+    .ff-labels strong { display: block; color: #bbb; margin-bottom: 3px; }
     .results {
       margin-top: 1.5rem;
       border-top: 1px solid #2a2a2a;
@@ -164,13 +221,21 @@
     .interpretation.FAIL { border-color: #ef4444; color: #f5dddd; }
     .ref { font-size: 10px; color: #777; margin-top: 10px; }
     .error { color: #ef4444; font-size: 13px; margin-top: 1rem; display: none; }
-    @media (max-width: 640px) {
+    .hidden-select {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
+    }
+    @media (max-width: 700px) {
       body { align-items: flex-start; padding: 14px; }
       .card { padding: 1.25rem; }
-      .head-grid { grid-template-columns: 1fr; }
-      .head-option { min-height: auto; }
+      .head-grid, .joint-grid, .plane-toggle { grid-template-columns: 1fr; }
+      .option-card, .toggle-card { min-height: auto; }
       .row { flex-direction: column; gap: 2px; }
       .row span:last-child { text-align: left; }
+      .compare-row, .ff-labels { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -184,38 +249,67 @@
       <label>Bolt head type</label>
     </div>
     <div class="head-grid" aria-label="Bolt head type">
-      <label class="head-option">
+      <label class="option-card active">
         <input type="radio" name="head-type" value="hex" checked>
-        <span class="head-icon">⬢</span>
-        <span class="head-title">Hex head</span>
-        <span class="head-sub">Structural</span>
+        <span class="icon-wrap"><svg viewBox="0 0 48 30" aria-hidden="true"><polygon points="15,3 33,3 44,15 33,27 15,27 4,15" fill="#2b2b2b" stroke="#aaa"/><circle cx="24" cy="15" r="5" fill="#111" stroke="#777"/></svg></span>
+        <span class="option-title">Hex head</span>
+        <span class="option-sub">Structural</span>
       </label>
-      <label class="head-option">
+      <label class="option-card">
         <input type="radio" name="head-type" value="socket">
-        <span class="head-icon">◉</span>
-        <span class="head-title">Socket cap</span>
-        <span class="head-sub">Allen key</span>
+        <span class="icon-wrap"><svg viewBox="0 0 48 30" aria-hidden="true"><rect x="9" y="4" width="30" height="22" rx="5" fill="#2b2b2b" stroke="#aaa"/><polygon points="18,15 21,10 27,10 30,15 27,20 21,20" fill="#111" stroke="#777"/></svg></span>
+        <span class="option-title">Socket cap</span>
+        <span class="option-sub">Allen key</span>
       </label>
-      <label class="head-option">
+      <label class="option-card">
         <input type="radio" name="head-type" value="phillips">
-        <span class="head-icon">✚</span>
-        <span class="head-title">Phillips</span>
-        <span class="head-sub">Light duty</span>
+        <span class="icon-wrap"><svg viewBox="0 0 48 30" aria-hidden="true"><circle cx="24" cy="15" r="12" fill="#2b2b2b" stroke="#aaa"/><rect x="14" y="13" width="20" height="4" fill="#111"/><rect x="22" y="5" width="4" height="20" fill="#111"/></svg></span>
+        <span class="option-title">Phillips</span>
+        <span class="option-sub">Light duty</span>
       </label>
-      <label class="head-option">
+      <label class="option-card">
         <input type="radio" name="head-type" value="torx">
-        <span class="head-icon">✶</span>
-        <span class="head-title">Torx</span>
-        <span class="head-sub">High torque</span>
+        <span class="icon-wrap"><svg viewBox="0 0 48 30" aria-hidden="true"><circle cx="24" cy="15" r="12" fill="#2b2b2b" stroke="#aaa"/><path d="M24 6 L27 12 L34 11 L29 16 L32 23 L24 20 L16 23 L19 16 L14 11 L21 12 Z" fill="#111" stroke="#777"/></svg></span>
+        <span class="option-title">Torx</span>
+        <span class="option-sub">High torque</span>
       </label>
-      <label class="head-option">
+      <label class="option-card">
         <input type="radio" name="head-type" value="countersunk">
-        <span class="head-icon">▽</span>
-        <span class="head-title">Countersunk</span>
-        <span class="head-sub">Flush mount</span>
+        <span class="icon-wrap"><svg viewBox="0 0 48 30" aria-hidden="true"><path d="M8 6 H40 L30 24 H18 Z" fill="#2b2b2b" stroke="#aaa"/><polygon points="18,15 21,10 27,10 30,15 27,20 21,20" fill="#111" stroke="#777"/></svg></span>
+        <span class="option-title">Countersunk</span>
+        <span class="option-sub">Flush mount</span>
       </label>
     </div>
     <p class="note">Head type affects installation torque but not shear strength. For shear calculations, only diameter and grade matter.</p>
+  </div>
+
+  <div class="field">
+    <div class="label-row">
+      <label for="joint-type">Joint type</label>
+    </div>
+    <div class="joint-grid" aria-label="Joint type">
+      <label class="option-card active">
+        <input type="radio" name="joint-type" value="through" checked>
+        <span class="option-title">Bolt + Nut</span>
+        <span class="option-sub">Through bolt</span>
+      </label>
+      <label class="option-card">
+        <input type="radio" name="joint-type" value="tapped-steel">
+        <span class="option-title">Tapped hole</span>
+        <span class="option-sub">Steel</span>
+      </label>
+      <label class="option-card">
+        <input type="radio" name="joint-type" value="tapped-aluminium">
+        <span class="option-title">Tapped hole</span>
+        <span class="option-sub">Aluminium</span>
+      </label>
+      <label class="option-card">
+        <input type="radio" name="joint-type" value="wood">
+        <span class="option-title">Wood screw</span>
+        <span class="option-sub">Self-tapping</span>
+      </label>
+    </div>
+    <p class="warning-note" id="wood-warning">Shear strength of wood screws depends on wood species and embedment. This calculator uses steel bolt grades. For wood connections use timber design codes.</p>
   </div>
 
   <div class="field">
@@ -244,6 +338,11 @@
       </span>
     </div>
     <input type="number" id="diameter" value="8" min="1" max="100" step="0.5">
+    <div class="viz">
+      <svg id="diameter-viz" viewBox="0 0 560 170" role="img" aria-label="Bolt diameter visual comparison"></svg>
+      <div class="compare-row" id="diameter-compare"></div>
+      <p class="note">This is the SHANK diameter, not the thread outer diameter. For an M8 bolt, enter 8.</p>
+    </div>
   </div>
 
   <div class="field">
@@ -265,10 +364,25 @@
         <span class="tooltip" id="planes-tip">Single shear = bolt cuts in one place, like a hinge pin. Double shear = bolt supported both sides, cuts in two places. Double shear is roughly twice as strong.</span>
       </span>
     </div>
-    <select id="planes">
+    <select id="planes" class="hidden-select">
       <option value="1">Single shear</option>
       <option value="2">Double shear</option>
     </select>
+    <div class="plane-toggle">
+      <label class="toggle-card active">
+        <input type="radio" name="plane-toggle" value="1" checked>
+        <span class="option-title">Single shear</span>
+        <span class="option-sub">One cut through the bolt</span>
+      </label>
+      <label class="toggle-card">
+        <input type="radio" name="plane-toggle" value="2">
+        <span class="option-title">Double shear</span>
+        <span class="option-sub">Two cuts through the bolt</span>
+      </label>
+    </div>
+    <div class="viz">
+      <svg id="planes-viz" viewBox="0 0 560 230" role="img" aria-label="Shear planes diagram"></svg>
+    </div>
   </div>
 
   <div class="field">
@@ -280,6 +394,16 @@
       </span>
     </div>
     <input type="number" id="ff" value="1.0" min="1.0" max="2.0" step="0.05">
+    <div class="viz">
+      <svg id="ff-viz" viewBox="0 0 560 90" role="img" aria-label="Fitting factor visual guide"></svg>
+      <div class="ff-labels">
+        <span><strong>1.0</strong>Well-defined load</span>
+        <span><strong>1.15</strong>Typical aerospace</span>
+        <span><strong>1.5</strong>Uncertain load path</span>
+        <span><strong>2.0</strong>Shock loads</span>
+      </div>
+      <p class="note">This multiplies your applied load before calculating. Higher factor = more conservative = safer design.</p>
+    </div>
   </div>
 
   <div class="field">
@@ -287,15 +411,19 @@
       <label for="engagement">Thread engagement length (mm)<span class="badge">v1.1</span></label>
     </div>
     <input type="number" id="engagement" value="12" min="0" step="0.5">
-    <p class="note">Minimum recommended: 1.0 × bolt diameter for steel, 1.5 × diameter for aluminium. Used in future thread shear calculations.</p>
+    <div class="viz">
+      <svg id="engagement-viz" viewBox="0 0 560 210" role="img" aria-label="Thread engagement explanation"></svg>
+      <p class="note" id="engagement-note"></p>
+    </div>
   </div>
 
-  <div class="field soon">
+  <div class="field">
     <div class="label-row">
       <label for="preload">Expected preload / clamping force (N)<span class="badge">v1.1</span></label>
     </div>
     <input type="number" id="preload" value="0" min="0" step="100">
-    <p class="note">Preload affects fatigue life and joint separation. Preload analysis coming in v1.1.</p>
+    <p class="note" id="preload-note">Preload is the tension you put in the bolt by tightening it. It clamps the joint together and resists the bolt loosening.</p>
+    <p class="note" id="suggested-preload"></p>
   </div>
 
   <button type="button" onclick="calculate()">Calculate margin of safety</button>
@@ -308,11 +436,23 @@
     <div class="row"><span>Margin of safety</span><span id="r-ms">-</span></div>
     <div class="row"><span>Status</span><span id="r-status">-</span></div>
     <div class="interpretation" id="interpretation"></div>
+    <div class="viz" id="result-viz-wrap" style="display:none;">
+      <svg id="result-viz" viewBox="0 0 560 210" role="img" aria-label="Result force and margin diagram"></svg>
+      <p class="note">MS = +1.32 means the bolt can take 2.32x the applied load before failing.</p>
+    </div>
     <p class="ref" id="r-ref"></p>
   </div>
 </div>
 
 <script>
+const gradeData = {
+  "ISO_8.8": { fty: 640 },
+  "ISO_10.9": { fty: 940 },
+  "ISO_12.9": { fty: 1100 },
+  "NAS_3": { fty: 724 },
+  "A2_70": { fty: 450 }
+};
+
 document.addEventListener("click", function(event) {
   const clickedHelp = event.target.matches(".help-btn");
   document.querySelectorAll(".tooltip").forEach(function(tip) {
@@ -326,6 +466,162 @@ document.addEventListener("click", function(event) {
     document.getElementById(event.target.dataset.tip).classList.toggle("open");
   }
 });
+
+document.querySelectorAll(".option-card input, .toggle-card input").forEach(function(input) {
+  input.addEventListener("change", function() {
+    const group = document.querySelectorAll("input[name='" + input.name + "']");
+    group.forEach(function(item) {
+      item.closest(".option-card, .toggle-card").classList.toggle("active", item.checked);
+    });
+
+    if (input.name === "plane-toggle") {
+      document.getElementById("planes").value = input.value;
+    }
+    updateVisuals();
+  });
+});
+
+["diameter", "grade", "ff", "engagement", "preload", "shear", "planes"].forEach(function(id) {
+  document.getElementById(id).addEventListener("input", updateVisuals);
+  document.getElementById(id).addEventListener("change", updateVisuals);
+});
+
+function numberValue(id, fallback) {
+  const value = parseFloat(document.getElementById(id).value);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function boltArea(diameter) {
+  return Math.PI * Math.pow(diameter / 2.0, 2);
+}
+
+function svgCircle(cx, cy, r, fill, stroke) {
+  return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="2"/>';
+}
+
+function updateDiameterVisual() {
+  const diameter = numberValue("diameter", 8);
+  const radius = Math.max(8, Math.min(58, diameter * 4));
+  const svg = document.getElementById("diameter-viz");
+  svg.innerHTML =
+    '<rect x="0" y="0" width="560" height="170" rx="8" fill="#111"/>' +
+    '<text x="22" y="28" fill="#bbb" font-size="13">Selected bolt cross-section</text>' +
+    svgCircle(280, 86, radius, "#1d9e75", "#7ee4c3") +
+    '<line x1="280" y1="' + (86 - radius) + '" x2="280" y2="' + (86 + radius) + '" stroke="#e0e0e0" stroke-width="1"/>' +
+    '<text x="300" y="90" fill="#e0e0e0" font-size="14">M' + diameter.toFixed(1).replace(".0", "") + ' / ' + diameter.toFixed(1) + ' mm</text>' +
+    '<text x="22" y="150" fill="#888" font-size="11">Larger diameter increases cross-sectional area quickly.</text>';
+
+  const sizes = [6, 8, 10, 12];
+  document.getElementById("diameter-compare").innerHTML = sizes.map(function(size) {
+    const active = Math.abs(diameter - size) <= 0.5 ? " active" : "";
+    const circle = '<svg viewBox="0 0 60 42" aria-hidden="true">' +
+      svgCircle(30, 20, size * 1.4, active ? "#1d9e75" : "#2b2b2b", active ? "#7ee4c3" : "#777") +
+      (active ? '<path d="M30 3 L24 12 H36 Z" fill="#1d9e75"/>' : '') +
+      '</svg>';
+    return '<div class="compare-item' + active + '">' + circle + 'M' + size + ' (' + size + 'mm)</div>';
+  }).join("");
+}
+
+function updatePlanesVisual() {
+  const planes = document.getElementById("planes").value;
+  const svg = document.getElementById("planes-viz");
+  if (planes === "1") {
+    svg.innerHTML =
+      '<rect x="0" y="0" width="560" height="230" rx="8" fill="#111"/>' +
+      '<rect x="80" y="78" width="155" height="74" rx="4" fill="#2a2a2a" stroke="#777"/>' +
+      '<rect x="245" y="78" width="155" height="74" rx="4" fill="#343434" stroke="#777"/>' +
+      '<rect x="260" y="52" width="42" height="126" rx="14" fill="#8a8a8a" stroke="#ddd"/>' +
+      '<line x1="240" y1="45" x2="240" y2="185" stroke="#ef4444" stroke-width="4" stroke-dasharray="7 5"/>' +
+      '<path d="M90 58 H170" stroke="#1d9e75" stroke-width="4"/><path d="M90 58 L104 50 V66 Z" fill="#1d9e75"/>' +
+      '<path d="M390 172 H310" stroke="#f59e0b" stroke-width="4"/><path d="M390 172 L376 164 V180 Z" fill="#f59e0b"/>' +
+      '<text x="80" y="35" fill="#ddd" font-size="15">Single shear</text>' +
+      '<text x="80" y="205" fill="#ef4444" font-size="13">Bolt cuts in ONE place</text>' +
+      '<text x="280" y="205" fill="#888" font-size="12">Example: hinge pin, clevis, or lap joint</text>';
+  } else {
+    svg.innerHTML =
+      '<rect x="0" y="0" width="560" height="230" rx="8" fill="#111"/>' +
+      '<rect x="82" y="78" width="120" height="74" rx="4" fill="#2a2a2a" stroke="#777"/>' +
+      '<rect x="220" y="62" width="120" height="106" rx="4" fill="#343434" stroke="#777"/>' +
+      '<rect x="358" y="78" width="120" height="74" rx="4" fill="#2a2a2a" stroke="#777"/>' +
+      '<rect x="270" y="42" width="42" height="146" rx="14" fill="#8a8a8a" stroke="#ddd"/>' +
+      '<line x1="212" y1="42" x2="212" y2="188" stroke="#ef4444" stroke-width="4" stroke-dasharray="7 5"/>' +
+      '<line x1="348" y1="42" x2="348" y2="188" stroke="#ef4444" stroke-width="4" stroke-dasharray="7 5"/>' +
+      '<path d="M280 48 V20" stroke="#1d9e75" stroke-width="4"/><path d="M280 20 L272 34 H288 Z" fill="#1d9e75"/>' +
+      '<path d="M142 172 H102" stroke="#777" stroke-width="4"/><path d="M418 172 H458" stroke="#777" stroke-width="4"/>' +
+      '<text x="80" y="35" fill="#ddd" font-size="15">Double shear</text>' +
+      '<text x="80" y="205" fill="#ef4444" font-size="13">Bolt cuts in TWO places - roughly 2x stronger</text>' +
+      '<text x="340" y="205" fill="#888" font-size="12">Example: fork/clevis joint or bridge pin</text>';
+  }
+}
+
+function updateFittingFactorVisual() {
+  const ff = Math.max(1.0, Math.min(2.0, numberValue("ff", 1.0)));
+  const pct = (ff - 1.0) / 1.0;
+  const x = 60 + pct * 440;
+  document.getElementById("ff-viz").innerHTML =
+    '<rect x="0" y="0" width="560" height="90" rx="8" fill="#111"/>' +
+    '<line x1="60" y1="42" x2="500" y2="42" stroke="#333" stroke-width="10" stroke-linecap="round"/>' +
+    '<line x1="60" y1="42" x2="' + x + '" y2="42" stroke="#1d9e75" stroke-width="10" stroke-linecap="round"/>' +
+    [1.0, 1.15, 1.5, 2.0].map(function(value) {
+      const mx = 60 + (value - 1.0) * 440;
+      return '<line x1="' + mx + '" y1="28" x2="' + mx + '" y2="58" stroke="#aaa" stroke-width="2"/><text x="' + (mx - 10) + '" y="76" fill="#aaa" font-size="11">' + value + '</text>';
+    }).join("") +
+    '<circle cx="' + x + '" cy="42" r="12" fill="#1d9e75" stroke="#7ee4c3" stroke-width="2"/>' +
+    '<text x="' + Math.max(16, Math.min(470, x - 34)) + '" y="22" fill="#e0e0e0" font-size="12">Current: ' + ff.toFixed(2) + '</text>';
+}
+
+function updateEngagementVisual() {
+  const diameter = numberValue("diameter", 8);
+  const steel = diameter;
+  const aluminium = diameter * 1.5;
+  const engagement = numberValue("engagement", diameter * 1.5);
+  const okWidth = Math.min(112, Math.max(24, engagement * 7));
+  document.getElementById("engagement-note").textContent =
+    "For M" + diameter.toFixed(1).replace(".0", "") + " in steel: minimum " + steel.toFixed(1).replace(".0", "") + "mm. For M" +
+    diameter.toFixed(1).replace(".0", "") + " in aluminium: minimum " + aluminium.toFixed(1).replace(".0", "") + "mm.";
+  document.getElementById("engagement-viz").innerHTML =
+    '<rect x="0" y="0" width="560" height="210" rx="8" fill="#111"/>' +
+    '<text x="28" y="30" fill="#ddd" font-size="13">Thread engagement is the length of thread overlap inside the hole.</text>' +
+    '<rect x="46" y="78" width="120" height="54" rx="6" fill="#2a2a2a" stroke="#777"/>' +
+    '<rect x="150" y="92" width="30" height="26" fill="#8a8a8a" stroke="#ddd"/>' +
+    '<rect x="180" y="92" width="26" height="26" fill="#ef4444" opacity="0.8"/>' +
+    '<text x="46" y="158" fill="#ef4444" font-size="12">Too short -> thread strips</text>' +
+    '<rect x="318" y="78" width="150" height="54" rx="6" fill="#2a2a2a" stroke="#777"/>' +
+    '<rect x="438" y="92" width="30" height="26" fill="#8a8a8a" stroke="#ddd"/>' +
+    '<rect x="' + (438 - okWidth) + '" y="92" width="' + okWidth + '" height="26" fill="#1d9e75" opacity="0.85"/>' +
+    '<line x1="' + (438 - okWidth) + '" y1="70" x2="438" y2="70" stroke="#e0e0e0"/>' +
+    '<path d="M' + (438 - okWidth) + ' 70 L' + (448 - okWidth) + ' 65 V75 Z" fill="#e0e0e0"/>' +
+    '<path d="M438 70 L428 65 V75 Z" fill="#e0e0e0"/>' +
+    '<text x="332" y="158" fill="#1d9e75" font-size="12">Correct -> full engagement</text>' +
+    '<text x="330" y="188" fill="#aaa" font-size="12">Current input: ' + engagement.toFixed(1).replace(".0", "") + ' mm</text>';
+}
+
+function updatePreload() {
+  const grade = document.getElementById("grade").value;
+  const diameter = numberValue("diameter", 8);
+  const joint = document.querySelector("input[name='joint-type']:checked").value;
+  const gradeSelect = document.getElementById("grade");
+  const preload = document.getElementById("preload");
+  const warning = document.getElementById("wood-warning");
+
+  if (joint === "wood") {
+    gradeSelect.disabled = true;
+    preload.disabled = true;
+    warning.style.display = "block";
+    document.getElementById("suggested-preload").textContent = "Suggested preload is not available for wood screws in this steel bolt calculator.";
+    return;
+  }
+
+  gradeSelect.disabled = false;
+  preload.disabled = false;
+  warning.style.display = "none";
+  const fty = gradeData[grade].fty;
+  const suggested = 0.7 * fty * boltArea(diameter);
+  document.getElementById("suggested-preload").textContent =
+    "If you do not know your preload, a rough estimate is 70% of bolt proof load = " +
+    Math.round(suggested).toLocaleString() + " N. Suggested preload for " + grade.replace("_", " ") +
+    " M" + diameter.toFixed(1).replace(".0", "") + ": " + (suggested / 1000).toFixed(1) + " kN.";
+}
 
 function setInterpretation(data) {
   const box = document.getElementById("interpretation");
@@ -341,6 +637,33 @@ function setInterpretation(data) {
   }
 
   box.style.display = "block";
+}
+
+function updateResultVisual(data) {
+  const ms = data.margin_of_safety;
+  const status = data.status;
+  const fillColor = status === "FAIL" ? "#ef4444" : status === "MARGINAL" ? "#f59e0b" : "#1d9e75";
+  const width = status === "FAIL" ? Math.min(220, Math.abs(ms) * 220) : Math.min(220, ms * 220);
+  const label = status === "FAIL" ? "Failure margin" : "Strength reserve";
+  document.getElementById("result-viz-wrap").style.display = "block";
+  document.getElementById("result-viz").innerHTML =
+    '<rect x="0" y="0" width="560" height="210" rx="8" fill="#111"/>' +
+    '<rect x="92" y="62" width="270" height="72" rx="6" fill="#2a2a2a" stroke="#777"/>' +
+    '<rect x="210" y="36" width="44" height="124" rx="14" fill="#8a8a8a" stroke="#ddd"/>' +
+    '<path d="M430 96 H300" stroke="#ef4444" stroke-width="5"/><path d="M430 96 L414 86 V106 Z" fill="#ef4444"/>' +
+    '<text x="338" y="82" fill="#ef4444" font-size="12">Applied shear force</text>' +
+    '<text x="70" y="178" fill="#bbb" font-size="12">' + label + '</text>' +
+    '<rect x="190" y="164" width="220" height="14" rx="7" fill="#252525" stroke="#444"/>' +
+    '<rect x="190" y="164" width="' + width + '" height="14" rx="7" fill="' + fillColor + '"/>' +
+    '<text x="420" y="177" fill="' + fillColor + '" font-size="12">MS ' + (ms >= 0 ? "+" : "") + ms + '</text>';
+}
+
+function updateVisuals() {
+  updateDiameterVisual();
+  updatePlanesVisual();
+  updateFittingFactorVisual();
+  updateEngagementVisual();
+  updatePreload();
 }
 
 async function calculate() {
@@ -382,6 +705,7 @@ async function calculate() {
     status.className = data.status;
 
     setInterpretation(data);
+    updateResultVisual(data);
     document.getElementById("r-ref").textContent = data.standard_ref;
     res.style.display = "block";
   } catch (error) {
@@ -389,6 +713,8 @@ async function calculate() {
     err.style.display = "block";
   }
 }
+
+updateVisuals();
 </script>
 </body>
 </html>
